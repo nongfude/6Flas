@@ -8,6 +8,71 @@ segment that drives constant-time per-hop verification. Domain key management
 and an end-to-end walk-through of the data path conclude the section. Throughout, the design keeps a single
 invariant in view, that the only mutable on-board state is a small
 per-direction replay window, never anything per flow.
+\cref{fig:arch} shows the overall architecture.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    sat/.style={circle,draw,fill=blue!14,minimum size=22pt,inner sep=0pt,font=\tiny},
+    ep/.style={rectangle,draw,rounded corners,fill=gray!12,
+               minimum width=1.1cm,minimum height=0.52cm,font=\tiny,align=center},
+    ctrl/.style={rectangle,draw,rounded corners,fill=orange!10,
+                 minimum width=4.4cm,minimum height=0.55cm,font=\tiny,align=center},
+    pkt/.style={->,thick,blue!55},
+    key/.style={->,dashed,orange!60,thin},
+    ann/.style={font=\fontsize{5}{6}\selectfont,align=center},
+    >=Latex
+]
+%% Control plane
+\node[ctrl] (ctrl) at (3.8,2.8)
+  {Ground Controller:\\[-2pt]provisions $\skey_\domid$;\enspace programs SRH path via Security SID};
+
+%% Data-plane nodes
+\node[ep]  (src) at (0.0, 0) {Source $A$};
+\node[sat] (v1)  at (1.9, 0) {$v_1$};
+\node[sat] (v2)  at (3.8, 0) {$v_2$};
+\node[sat] (v3)  at (5.7, 0) {$v_3$};
+\node[ep]  (gw)  at (7.6, 0) {GW $G$};
+
+%% Packet flow
+\draw[pkt] (src) -- (v1);
+\draw[pkt] (v1)  -- (v2);
+\draw[pkt] (v2)  -- (v3);
+\draw[pkt] (v3)  -- (gw);
+
+%% Key provisioning (controller → every node)
+\draw[key] (ctrl) -- (src.north east);
+\draw[key] (ctrl) -- (v1.north);
+\draw[key] (ctrl) -- (v2.north);
+\draw[key] (ctrl) -- (v3.north);
+\draw[key] (ctrl) -- (gw.north west);
+
+%% Source annotation
+\node[ann,below=4pt of src]
+  {$\fl=\prf_{\skey_\domid}(\textit{5t}\,\|\,\domid)$\\
+   $\mtag=\mac_{\skey_\domid}(\fl\|\textrm{SID}\|\domid\|\seq)|_{32}$};
+
+%% Satellite annotations
+\node[ann,below=4pt of v1]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
+\node[ann,below=4pt of v2]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
+\node[ann,below=4pt of v3]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
+
+%% Gateway annotation
+\node[ann,below=4pt of gw]{deliver\\(no SA)};
+
+%% Packet-field label on the wire
+\node[ann,above=3pt of v2]{$[\,\fl\;\big|\;\textrm{SID}\;\big|\;\domid\;\big|\;\seq\;\big|\;\mtag\,]$};
+\end{tikzpicture}%
+}
+\caption{6FLAS end-to-end architecture. The ground controller provisions the
+domain key $\skey_\domid$ to the source and all on-board routers and programs the
+SRH path. The source computes the Flow Label and the 32-bit MAC tag; each
+on-board router executes the four-step \texttt{End.SEC} procedure
+(\cref{alg:verify}) using only fields in the packet and the local domain key —
+no per-flow state exists to migrate on an ISL handover.}
+\label{fig:arch}
+\end{figure}
 
 \subsection{Design Philosophy}
 \label{sec:philosophy}
@@ -47,7 +112,7 @@ $\downarrow$ \\[2pt]
 \caption{6FLAS packet structure. The Flow Label carries a stateless flow
 authenticator; the SRv6 Security SID encodes the per-hop path policy; an
 8-byte metadata block carries the domain id, sequence number, and truncated MAC
-tag. Each on-board router verifies the tag over the shaded routing span and
+tag. Each on-board router verifies the tag over the covered routing span and
 checks the replay window, then forwards.}
 \label{fig:overview}
 \end{figure}
@@ -105,12 +170,10 @@ count and well within any space-grade processor's memory budget.
 \label{sec:srv6-bind}
 
 6FLAS encodes its per-hop policy in an SRv6 Security SID that follows the
-standard \texttt{Locator$\,|\,$Function$\,|\,$Arguments} layout~\cite{rfc8986},
-\texttt{End.SEC} is designed as a strict superset of the \texttt{End} behavior:
-a node that implements \texttt{End} but not \texttt{End.SEC} performs standard SRv6
-forwarding without per-hop security verification, preserving connectivity. Backward
-compatibility therefore holds within a deployment where all active-path nodes
-implement at least the base \texttt{End} behavior.
+standard \texttt{Locator$\,|\,$Function$\,|\,$Arguments} layout~\cite{rfc8986}.
+The \texttt{End.SEC} function is defined as a strict superset of \texttt{End},
+so nodes that implement only \texttt{End} continue forwarding without
+interruption.
 
 \begin{definition}[Security SID behavior \texttt{End.SEC}]
 \label{def:endsec}

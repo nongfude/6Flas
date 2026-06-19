@@ -80,11 +80,11 @@ The constellation under consideration is a Walker-delta LEO configuration: $P$ o
 $S$ satellites at altitude $h$ of a few hundred kilometers (using the
 Starlink-like shell $h=550$\,km, $P=72$, $S=22$, $N=PS=1584$ in
 \cref{sec:exp}). Each satellite is an on-board IP router connected to its
-neighbors by ISLs. In the common $+$Grid pattern, a satellite maintains four
-ISLs: two intra-plane links to the satellites ahead and behind, and two
-inter-plane links to satellites in adjacent planes; together with the
-up/down ground-link direction, this yields a small, fixed set of forwarding
-directions per node.
+neighbors by ISLs. In the common $+$Grid pattern, a satellite maintains four ISLs: two
+intra-plane links (forward/backward in the same orbital plane) and two
+inter-plane links (to satellites in adjacent planes); together with separate
+up and down ground links, this yields \emph{six} forwarding directions per
+node (north, south, east, west, up, down).
 
 Two properties shape the design space. First, the topology is
 \emph{dynamic but predictable}: satellites move continuously, ISLs are made and

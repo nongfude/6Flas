@@ -94,10 +94,11 @@ condition of \cref{sec:formulation}.
 \label{sec:sec-compare}
 
 \cref{tab:secprop} compares the security properties 6FLAS provides against the
-baselines. 6FLAS matches IPsec/DTLS on authentication, integrity, and anti-replay
-while uniquely offering stateless verification and topology-aware access
-control; it deliberately omits payload confidentiality, which it leaves to a
-composable encryption layer.
+baselines. 6FLAS matches IPsec/DTLS on data-origin authentication and integrity,
+provides a probabilistic anti-replay guarantee (shared per-direction window
+rather than per-flow, see \cref{prop:replay}), and uniquely offers stateless
+verification and topology-aware access control; it deliberately omits payload
+confidentiality, which it leaves to a composable encryption layer.
 
 \begin{table}[t]
 \centering
@@ -106,9 +107,9 @@ composable encryption layer.
 \label{tab:secprop}
 \renewcommand{\arraystretch}{1.2}
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Property} & \textbf{IPsec} & \textbf{DTLS} & \textbf{SRv6-HMAC} & \textbf{6FLAS} \\
+\textbf{Property} & \textbf{IPsec} & \textbf{DTLS} & \textbf{SRv6-Sec (HMAC)} & \textbf{6FLAS} \\
 \midrule
 Data-origin auth.\ (R1) & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ \\
 Integrity (R2)          & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ \\

@@ -2,7 +2,8 @@
 \label{sec:exp}
 
 This section quantifies the cost of 6FLAS and contrasts it with conventional
-mechanisms. The reproducible two-part model and baselines are described first,
+mechanisms. The reproducible three-part evaluation (analytical processing model,
+event-driven latency model, and Python software prototype) and baselines are described first,
 followed by results spanning per-hop processing, communication and state
 overhead, throughput under load, end-to-end latency, handover cost, payload
 sensitivity, and the tag-width tradeoff. The section concludes with a discussion
@@ -11,7 +12,7 @@ of where 6FLAS fits, how it maps to hardware, and its limitations.
 \subsection{Evaluation Setup}
 \label{sec:setup}
 
-6FLAS is evaluated with a reproducible two-part model rather than measurements on
+6FLAS is evaluated with a reproducible three-part model rather than measurements on
 flight hardware, which is not available.
 An \emph{analytical processing model} charges each mechanism the cost of its
 per-hop primitives in CPU cycles on a 1\,GHz space-grade core ($1$ cycle

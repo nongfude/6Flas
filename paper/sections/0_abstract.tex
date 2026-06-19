@@ -12,8 +12,10 @@ security association table. The LEO security problem is formalized on a
 resource-constrained directed graph; the 6FLAS packet format, per-hop
 verification algorithm, and a security argument against eavesdropping,
 forgery, man-in-the-middle, replay, and stateless-denial-of-service attacks are
-provided. 6FLAS is evaluated with a reproducible analytical processing model and an
-event-driven latency model of a 1584-satellite Walker-delta constellation.
+provided. 6FLAS is evaluated with a reproducible analytical processing model, an
+event-driven latency model of a 1584-satellite Walker-delta constellation,
+and a Python software prototype that validates the structural ordering on
+commodity hardware.
 6FLAS reduces per-hop security processing time by about $48\times$ versus IPsec
 ESP and $5.9\times$ versus an SRv6 HMAC baseline, cuts per-packet byte overhead
 by $79\%$, and eliminates per-flow on-board state entirely (zero bytes per flow versus $256$\,B for IPsec~ESP), while keeping the
