@@ -14,63 +14,83 @@ per-direction replay window, never anything per flow.
 \centering
 \resizebox{\columnwidth}{!}{%
 \begin{tikzpicture}[
-    sat/.style={circle,draw,fill=blue!14,minimum size=22pt,inner sep=0pt,font=\tiny},
-    ep/.style={rectangle,draw,rounded corners,fill=gray!12,
-               minimum width=1.1cm,minimum height=0.52cm,font=\tiny,align=center},
-    ctrl/.style={rectangle,draw,rounded corners,fill=orange!10,
-                 minimum width=4.4cm,minimum height=0.55cm,font=\tiny,align=center},
+    satnode/.style={font=\fontsize{22}{24}\selectfont,text=blue!65,inner sep=0pt},
+    epnode/.style={font=\fontsize{18}{20}\selectfont,text=gray!70,inner sep=0pt},
+    ctrlnode/.style={font=\fontsize{18}{20}\selectfont,text=orange!80!black,inner sep=0pt},
     pkt/.style={->,thick,blue!55},
-    key/.style={->,dashed,orange!60,thin},
+    key/.style={->,dashed,orange!55,thin},
+    glink/.style={<->,semithick,gray!55},
     ann/.style={font=\fontsize{5}{6}\selectfont,align=center},
+    seglbl/.style={font=\fontsize{6}{7}\selectfont\bfseries},
     >=Latex
 ]
-%% Control plane
-\node[ctrl] (ctrl) at (3.8,2.8)
-  {Ground Controller:\\[-2pt]provisions $\skey_\domid$;\enspace programs SRH path via Security SID};
+%% Segment background bands
+\fill[orange!7,rounded corners=3pt] (-0.6,4.0) rectangle (8.8,5.6);
+\fill[blue!6, rounded corners=3pt] (-0.6,1.5) rectangle (8.8,3.8);
+\fill[gray!8, rounded corners=3pt] (-0.6,-2.6) rectangle (8.8,0.2);
 
-%% Data-plane nodes
-\node[ep]  (src) at (0.0, 0) {Source $A$};
-\node[sat] (v1)  at (1.9, 0) {$v_1$};
-\node[sat] (v2)  at (3.8, 0) {$v_2$};
-\node[sat] (v3)  at (5.7, 0) {$v_3$};
-\node[ep]  (gw)  at (7.6, 0) {GW $G$};
+%% Segment labels
+\node[seglbl,text=orange!75!black,anchor=west] at (-0.5,5.45)
+  {\textit{Ground-Space Combined (Control Plane)}};
+\node[seglbl,text=blue!65,anchor=west] at (-0.5,3.68)
+  {\textit{Space Segment}};
+\node[seglbl,text=gray!60,anchor=west] at (-0.5,0.10)
+  {\textit{Ground Segment}};
 
-%% Packet flow
-\draw[pkt] (src) -- (v1);
-\draw[pkt] (v1)  -- (v2);
-\draw[pkt] (v2)  -- (v3);
-\draw[pkt] (v3)  -- (gw);
+%% Ground controller (control-plane band)
+\node[ctrlnode] (ctrl) at (4.1,4.85) {\faServer};
+\node[ann,below=1pt of ctrl,text=orange!80!black]
+  {Ground Controller\\[-2pt]provisions $\skey_\domid$;\enspace programs SRH via Security SID};
 
-%% Key provisioning (controller → every node)
-\draw[key] (ctrl) -- (src.north east);
-\draw[key] (ctrl) -- (v1.north);
-\draw[key] (ctrl) -- (v2.north);
-\draw[key] (ctrl) -- (v3.north);
-\draw[key] (ctrl) -- (gw.north west);
+%% Satellite nodes (space-segment band)
+\node[satnode] (v1) at (1.0,2.65) {\faSatellite};
+\node[satnode] (v2) at (4.1,2.65) {\faSatellite};
+\node[satnode] (v3) at (7.2,2.65) {\faSatellite};
 
-%% Source annotation
-\node[ann,below=4pt of src]
-  {$\fl=\prf_{\skey_\domid}(\textit{5t}\,\|\,\domid)$\\
+\node[ann,above=1pt of v1]{$v_1$};
+\node[ann,above=1pt of v2]{$v_2$};
+\node[ann,above=1pt of v3]{$v_3$};
+
+\node[ann,below=2pt of v1]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
+\node[ann,below=2pt of v2]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
+\node[ann,below=2pt of v3]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
+
+%% Ground nodes (ground-segment band)
+\node[epnode] (src) at (0.8,-1.1) {\faDesktop};
+\node[epnode] (gw)  at (7.4,-1.1) {\faSatelliteDish};
+
+\node[ann,below=2pt of src]
+  {Source $A$\\[-2pt]$\fl=\prf_{\skey_\domid}(\textit{5t}\,\|\,\domid)$\\
    $\mtag=\mac_{\skey_\domid}(\fl\|\textrm{SID}\|\domid\|\seq)|_{32}$};
+\node[ann,below=2pt of gw]{Gateway $G$\\[-2pt]deliver (no SA)};
 
-%% Satellite annotations
-\node[ann,below=4pt of v1]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
-\node[ann,below=4pt of v2]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
-\node[ann,below=4pt of v3]{\texttt{End.SEC}\\parse$\to$replay\\$\to$MAC$\to$dir};
+%% ISL packet flow
+\draw[pkt] (v1.east) -- (v2.west)
+  node[ann,above,midway]{$[\,\fl\;|\;\textrm{SID}\;|\;\domid\;|\;\seq\;|\;\mtag\,]$};
+\draw[pkt] (v2.east) -- (v3.west);
 
-%% Gateway annotation
-\node[ann,below=4pt of gw]{deliver\\(no SA)};
+%% Up/down ground links (空地接口)
+\draw[glink] (src.north) -- (v1.south);
+\draw[glink] (gw.north)  -- (v3.south);
 
-%% Packet-field label on the wire
-\node[ann,above=3pt of v2]{$[\,\fl\;\big|\;\textrm{SID}\;\big|\;\domid\;\big|\;\seq\;\big|\;\mtag\,]$};
+%% Key provisioning (controller → all nodes)
+\draw[key] (ctrl.west) to[bend right=15] (src.north east);
+\draw[key] (ctrl.south west) to[bend right=10] (v1.north);
+\draw[key] (ctrl.south) -- (v2.north);
+\draw[key] (ctrl.south east) to[bend left=10] (v3.north);
+\draw[key] (ctrl.east) to[bend left=15] (gw.north west);
+
 \end{tikzpicture}%
 }
-\caption{6FLAS end-to-end architecture. The ground controller provisions the
-domain key $\skey_\domid$ to the source and all on-board routers and programs the
-SRH path. The source computes the Flow Label and the 32-bit MAC tag; each
-on-board router executes the four-step \texttt{End.SEC} procedure
-(\cref{alg:verify}) using only fields in the packet and the local domain key —
-no per-flow state exists to migrate on an ISL handover.}
+\caption{6FLAS three-segment architecture.
+\textit{Ground segment}: source $A$ (\faDesktop) computes the Flow Label and MAC
+tag; gateway $G$ (\faSatelliteDish) delivers packets with no SA.
+\textit{Space segment}: each on-board router (\faSatellite) executes the
+four-step \texttt{End.SEC} procedure (\cref{alg:verify}) over ISLs — no per-flow
+state migrates on handover.
+\textit{Ground-space combined (control plane)}: the ground controller (\faServer)
+provisions domain key $\skey_\domid$ to all nodes and programs the SRH path via
+Security SIDs. Up/down arrows ($\leftrightarrow$) denote the space-ground uplinks.}
 \label{fig:arch}
 \end{figure}
 
