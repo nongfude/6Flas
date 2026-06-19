@@ -1,0 +1,26 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+LEO constellations forward IP traffic in orbit across many on-board routers
+whose compute and memory cannot absorb conventional per-flow security, yet whose
+open ISLs demand protection. 6FLAS is proposed to resolve this tension by
+moving security state out of the satellite and into the packet: it derives a
+stateless flow authenticator from a domain key and carries it in the immutable
+IPv6 Flow Label, binds it to an SRv6 Security SID that encodes the per-hop path
+policy, and verifies each packet with a single short keyed MAC plus a constant-time,
+topology-aware egress check. The design needs no per-flow security association,
+so it survives ISL handovers without re-keying and resists state-exhaustion
+denial of service by construction.
+
+Analysis demonstrates that 6FLAS meets data-origin authentication, integrity,
+anti-replay, and path access-control requirements, with single-packet forgery
+bounded by the MAC and the $32$-bit tag. A reproducible processing model and an
+event-driven model of a 1584-satellite constellation show 6FLAS cuts per-hop
+processing about $48\times$ versus IPsec ESP and $5.9\times$ versus an SRv6 HMAC
+baseline, reduces per-packet overhead by $79\%$ and eliminates per-flow on-board state (zero bytes per flow),
+and keeps end-to-end latency within the propagation-dominated regime. These
+results indicate that lightweight, stateless, packet-carried security is a
+practical fit for resource-constrained LEO on-board routers. Future work will
+add a composable confidentiality layer, a synchronization-free anti-replay
+variant, and a standardization path for the Flow-Label security profile and the
+\texttt{End.SEC} behavior.

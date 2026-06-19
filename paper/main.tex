@@ -1,0 +1,73 @@
+\documentclass[journal]{IEEEtran}
+
+% Math
+\usepackage{amsmath,amssymb,amsfonts,amsthm,mathtools}
+
+% Typography and figures
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{cite}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+
+% cleveref must be loaded AFTER hyperref
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Theorems
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\crefname{assumption}{Assumption}{Assumptions}
+\Crefname{assumption}{Assumption}{Assumptions}
+
+\input{math_commands}
+
+\title{6FLAS: A Lightweight Security Protection Mechanism for LEO Satellite Networks Using IPv6 Flow Label and SRv6}
+
+\author{Anonymous Authors%
+\thanks{This manuscript is a research draft. The evaluation scripts and generated data are included with the local artifact to support reproducibility.}%
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{sections/0_abstract}
+\end{abstract}
+
+\begin{IEEEkeywords}
+LEO satellite networks, IPv6 Flow Label, SRv6, lightweight authentication, network security, non-terrestrial networks.
+\end{IEEEkeywords}
+
+\input{sections/1_introduction}
+\input{sections/3_preliminaries}
+\input{sections/4_method}
+\input{sections/5_security_analysis}
+\input{sections/6_experiments}
+\input{sections/7_conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

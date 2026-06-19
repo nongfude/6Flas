@@ -1,0 +1,330 @@
+\section{Performance Evaluation and Discussion}
+\label{sec:exp}
+
+This section quantifies the cost of 6FLAS and contrasts it with conventional
+mechanisms. The reproducible two-part model and baselines are described first,
+followed by results spanning per-hop processing, communication and state
+overhead, throughput under load, end-to-end latency, handover cost, payload
+sensitivity, and the tag-width tradeoff. The section concludes with a discussion
+of where 6FLAS fits, how it maps to hardware, and its limitations.
+
+\subsection{Evaluation Setup}
+\label{sec:setup}
+
+6FLAS is evaluated with a reproducible two-part model rather than measurements on
+flight hardware, which is not available.
+An \emph{analytical processing model} charges each mechanism the cost of its
+per-hop primitives in CPU cycles on a 1\,GHz space-grade core ($1$ cycle
+$=1$\,ns), using primitive costs drawn from standard embedded software-crypto
+microbenchmarks; parsing, MAC, encryption, replay, and association-lookup terms
+are listed explicitly so the model can be audited and re-parameterized.
+An \emph{event-driven latency model} of the constellation routes random
+source--destination pairs over a $+$Grid topology and accumulates free-space
+propagation, per-hop security processing, and light $M/M/1$ queueing.
+The constellation is a Starlink-like shell: $h=550$\,km, $P=72$ planes,
+$S=22$ satellites per plane, $N=1584$ nodes, intra-plane ISL $\approx1970$\,km
+and inter-plane ISL $\approx604$\,km~\cite{del2019,bhattacherjee2023}. The entire evaluation is regenerated
+deterministically (seed fixed) by a single script released with the paper.
+A Python software prototype (\texttt{proto/bench\_flas.py}, co-released)
+provides a third, complementary validation on commodity hardware: per-primitive
+wall-clock time is measured with \texttt{timeit} and baseline subtraction,
+using BLAKE2b as a conservative proxy for SipHash-2-4 (BLAKE2b
+$\approx3$--$4$\,cyc/byte vs.\ SipHash-2-4 $\approx2.1$\,cyc/byte on the same
+input length); the prototype confirms the structural ordering
+$\text{FLAS} \ll \text{SRv6-Sec} \ll \text{IPsec}$, while exact cycle ratios
+are reproduced by the companion C benchmark (\texttt{proto/bench\_flas.c}).
+
+Four baselines are used for comparison: \textbf{Plain SRv6} (routing only, no
+security; a lower bound on processing), \textbf{IPsec ESP} (transport mode,
+HMAC-SHA256 + AES-128-CBC, per-flow SA), \textbf{DTLS 1.2} (record layer, same
+primitives), and \textbf{SRv6-Sec (HMAC)}, which verifies an HMAC-SHA256 over
+the routing header per hop in the spirit of the SRH HMAC TLV~\cite{rfc8754}.
+Four categories of metrics are reported: \textbf{per-hop cost} (processing time,
+communication overhead, on-board state); \textbf{scalability} (forwarding
+throughput vs.\ concurrent-flow count); \textbf{dynamics} (end-to-end latency
+and control-plane handover cost); and \textbf{sensitivity} (payload-size
+independence, tag-width tradeoff, and energy).
+
+\cref{tab:cyc} lists the per-primitive cycle costs used by the processing model,
+normalized to a $1$\,GHz core ($1$ cycle $=1$\,ns). Costs follow widely reported
+embedded software-crypto ratios: symmetric MAC/cipher work is charged per
+processed byte or per $16$-byte block, with fixed setup terms for HMAC and AES.
+The security-relevant covered span for 6FLAS and the SRv6 HMAC baseline is the
+IPv6 base header ($40$\,B) plus the SRH with one SID ($24$\,B) plus the 6FLAS
+metadata block ($8$\,B), totaling $72$\,B. IPsec/DTLS additionally process a
+$512$\,B payload, reflecting their payload encryption. All constants and the
+resulting figures are produced by the released script.
+Absolute values are analytically projected and depend on the chosen primitive costs;
+the structural ordering of mechanisms and FLAS's payload-independence are robust
+to reasonable re-parameterisation.
+
+\begin{table}[t]
+\centering
+\caption{Per-primitive cost constants (cycles) used in the processing model.}
+\label{tab:cyc}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lr}
+\toprule
+\textbf{Primitive} & \textbf{Cost (cycles)} \\
+\midrule
+Parse IPv6 base header        & 40 \\
+Parse SRH + one SID           & 60 \\
+Flow-Label window select      & 25 \\
+Replay sliding-window test    & 30 \\
+SipHash keyed MAC (per byte)  & 2.1 \\
+HMAC-SHA256 setup             & 900 \\
+HMAC-SHA256 (per byte)        & 11.0 \\
+AES-128-CBC (per 16\,B block) & 220 \\
+AES setup                     & 350 \\
+IPsec SA / SPD lookup         & 180 \\
+DTLS record bookkeeping       & 1500 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Per-Hop Cost and Communication Overhead}
+\label{sec:results}
+
+\cref{fig:proc} shows per-hop processing time. 6FLAS verifies a packet in about
+$306$\,ns, dominated by the short keyed MAC over the $72$-byte covered span and
+the $O(1)$ replay-window probe. IPsec ESP costs about $14.6\,\mu$s and DTLS
+about $15.6\,\mu$s, since both run a full HMAC-SHA256 plus AES-CBC over the
+payload and pay an SA/record lookup; the SRv6 HMAC baseline costs about
+$1.79\,\mu$s because of its full SHA-256 digest. 6FLAS is thus analytically about $48\times$
+faster than IPsec ESP and $5.9\times$ faster than the SRv6 HMAC baseline, while
+remaining within a small constant factor of routing-only Plain SRv6.
+The Python prototype confirms this ordering, measuring $3.6\times$ over
+SRv6-Sec and $19\times$ over IPsec; both are conservative lower bounds because
+(i)~BLAKE2b is $\approx1.7\times$ slower than SipHash-2-4, compressing the
+SRv6-Sec ratio, and (ii)~the commodity AES-NI path exercised on the benchmark
+host is faster than the software AES assumed for space-grade cores without
+hardware acceleration, compressing the IPsec ratio.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\columnwidth]{figures/proc_overhead.pdf}
+\caption{Per-hop security processing time on a 1\,GHz space-grade core. 6FLAS
+stays close to routing-only Plain SRv6 and is far below the HMAC/encryption
+baselines. (Lower is better.)}
+\label{fig:proc}
+\end{figure}
+
+In communication overhead (\cref{fig:header}), 6FLAS adds only $8$ bytes (the
+metadata block) and reuses the existing Flow Label field at no extra cost, whereas
+IPsec ESP adds $38$ bytes (ESP header, IV, ICV, trailer), DTLS adds $37$, and the
+SRv6 HMAC TLV adds $36$ (4-byte TLV header + 32-byte digest). 6FLAS therefore
+cuts header overhead by about $79\%$ relative to IPsec ESP, which matters on the
+bandwidth-limited ISL.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/header_overhead.pdf}
+\caption{Per-packet byte overhead added by each mechanism on top of IPv6+SRH.
+6FLAS adds only an 8-byte metadata block. (Lower is better.)}
+\label{fig:header}
+\end{figure}
+
+\subsection{State, Scalability, and Dynamics}
+\label{sec:dyn}
+
+\cref{tab:state} lists per-flow on-board state. 6FLAS carries \emph{zero}
+per-flow state: the only mutable on-board storage is the fixed
+$6\times32=192$\,B per-direction replay window, shared among all flows in that
+direction and independent of $|\setF|$. This compares with IPsec's $256$\,B SA
+and DTLS's $320$\,B session per flow.
+\cref{fig:scal} sweeps the concurrent-flow count from $10$ to $10^6$ and plots
+single-core forwarding throughput. Stateful baselines degrade as the working set
+grows (association-lookup cache pressure), whereas 6FLAS and Plain SRv6 are flat.
+At $10^6$ flows 6FLAS sustains about $3.3$\,Mpps on one core, analytically ${\approx}48\times$
+the throughput of IPsec ESP under the same load.
+
+\begin{table}[t]
+\centering
+\caption{Per-flow on-board security state.}
+\label{tab:state}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Mechanism} & \textbf{State / flow (B)} & \textbf{Reduction vs.\ IPsec} \\
+\midrule
+IPsec ESP        & 256 & --- \\
+DTLS 1.2         & 320 & $-25\%$ (worse) \\
+SRv6-Sec (HMAC)  & 96  & $63\%$ \\
+\textbf{6FLAS}    & \textbf{0\,{\scriptsize(192\,B total, dir-scoped)}} & $\mathbf{100\%}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/scalability.pdf}
+\caption{Single-core forwarding throughput versus number of concurrent flows.
+6FLAS (stateless) tracks Plain SRv6 and stays flat to $10^6$ flows, while
+stateful baselines degrade under association-lookup pressure. (Higher is
+better.)}
+\label{fig:scal}
+\end{figure}
+
+\noindent\textbf{End-to-end latency and handover cost.}
+\cref{fig:latcdf} shows the latency CDF over the constellation for 6FLAS, IPsec
+ESP, and Plain SRv6. End-to-end latency is dominated by free-space propagation
+and queueing across the multi-hop path: 6FLAS's median ($\approx99$\,ms) and
+$95$th percentile ($\approx189$\,ms) are statistically indistinguishable from
+Plain SRv6 ($\approx98$\,ms median) and slightly better than IPsec ESP, whose
+larger per-hop processing adds a small but measurable tail. The takeaway is that
+6FLAS's security processing is negligible at the path level; its real advantage,
+shown in \cref{fig:proc,fig:scal}, is the per-router compute and state budget,
+which is what actually constrains an on-board forwarding engine.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/latency_cdf.pdf}
+\caption{End-to-end latency CDF over the 1584-satellite constellation. 6FLAS is
+indistinguishable from routing-only Plain SRv6 because propagation dominates;
+the security cost does not appear at the path level.}
+\label{fig:latcdf}
+\end{figure}
+
+\medskip
+The LEO data plane is dominated by churn: orbital motion continually
+makes and breaks ISLs, so flows are rerouted onto new satellites many times per
+orbit. A stateful mechanism must migrate or re-establish its per-flow security
+association on the new node, which means a fresh handshake (an asymmetric
+operation) and an SA/session install; we charge IPsec a $\sim$IKEv2-class
+handshake and DTLS a comparable record-layer handshake, and the SRv6 HMAC
+baseline a per-flow key re-derivation. 6FLAS migrates \emph{nothing}: the
+security context travels in the packet, so the next satellite verifies the very
+next packet with the domain key it already holds.
+
+\cref{fig:handover} sweeps the number of flows that must be rerouted within a
+one-second control window and reports the aggregate control-plane CPU time this
+imposes on the new node. At $10^4$ rerouted flows, IPsec must spend on the order
+of $35$\,s of control-plane CPU time and DTLS about $38$\,s (far beyond a
+one-second budget, i.e., the node cannot keep up), the SRv6 HMAC baseline about
+$1.2$\,s, while 6FLAS spends none. This is the practical consequence of design
+goal D3: 6FLAS turns a handover from a re-keying event into a non-event, which is
+exactly the property a churn-dominated constellation needs.
+
+\paragraph{Comparison with IKEv2.}
+To put the IPsec curve in perspective, consider what IKEv2 actually does on a
+handover. An IKEv2 Initial Exchange requires two round trips (IKE\_SA\_INIT plus
+IKE\_AUTH) and involves at minimum a Diffie--Hellman key agreement, two
+certificate or PSK authentications, and a Child SA negotiation; even with
+pre-shared keys and hardware acceleration, this is thousands of cycles of
+asymmetric or hash work plus at least one round-trip delay of $\sim$5--25\,ms
+across an ISL~\cite{rfc4301}. For a node that must re-secure $10^4$ flows in
+one second --- a realistic rate for a satellite serving a busy ground segment
+during an orbital handover --- the IKE workload stacks to the tens of
+seconds shown in \cref{fig:handover}, during which new flows are either
+blocked or forwarded without security guarantees. 6FLAS avoids this entirely:
+because the security context is in the packet, the newly responsible router
+begins verifying the very next packet without any control-plane exchange,
+reducing handover cost from $O(\text{rerouted flows})$ to $O(1)$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/handover_cost.pdf}
+\caption{Control-plane CPU time to re-secure flows after an ISL handover, versus
+the number of rerouted flows in a one-second window (log--log). Stateful schemes
+pay a handshake/SA-install per rerouted flow; 6FLAS pays nothing because no
+per-flow state migrates. (Lower is better.)}
+\label{fig:handover}
+\end{figure}
+
+\subsection{Sensitivity Analysis}
+\label{sec:sensitivity}
+
+6FLAS authenticates only the fixed $72$-byte routing span
+(\cref{tab:cyc}), so its per-hop cost is constant regardless of how large the
+data packet is. IPsec and DTLS authenticate and encrypt the payload, so their
+per-hop cost grows linearly with packet size. \cref{fig:payload} sweeps the
+payload from $64$ to $1500$\,bytes: 6FLAS and the SRv6 HMAC baseline are flat
+($306$\,ns and $1.79\,\mu$s), whereas IPsec rises from about $4.6\,\mu$s to
+$39\,\mu$s and DTLS similarly. On an ISL carrying full-size data packets, the
+gap between 6FLAS and payload-processing schemes therefore \emph{widens} with
+packet size, reaching roughly $128\times$ at $1500$\,bytes. Authenticating
+routing metadata rather than payload is what makes 6FLAS's cost insensitive to
+the traffic it carries.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/payload_sensitivity.pdf}
+\caption{Per-hop processing time versus payload size. 6FLAS authenticates a fixed
+routing span, so its cost is flat; payload-processing schemes grow linearly.
+(Lower is better.)}
+\label{fig:payload}
+\end{figure}
+
+The truncated tag width $t$ sets both the single-packet forgery bound
+($2^{-t}$, \cref{prop:forgery}) and the metadata size. \cref{tab:tag} tabulates
+the tradeoff. Widening the tag from the $32$-bit default to $64$ bits tightens
+the forgery bound from $2^{-32}$ to $2^{-64}$ at a cost of only $4$ extra bytes
+per packet and $8$\,ns of extra processing, because the keyed MAC already runs
+over the routing span and only the tag-comparison span grows. A deployment can
+thus pick its security margin almost for free; $32$ bits are used as a balance
+between the bound and header compactness, and note that even the $64$-bit
+variant still adds only $12$ bytes, less than a third of IPsec's $38$.
+
+\begin{table}[t]
+\centering
+\caption{Tag-width tradeoff: forgery bound, metadata size, and per-hop cost.}
+\label{tab:tag}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Tag (bits)} & \textbf{Forgery bound} & \textbf{Metadata (B)} & \textbf{Proc.\ (ns)} \\
+\midrule
+16 & $2^{-16}$ & 6  & 302 \\
+24 & $2^{-24}$ & 7  & 304 \\
+\textbf{32} & $\mathbf{2^{-32}}$ & \textbf{8}  & \textbf{306} \\
+48 & $2^{-48}$ & 10 & 310 \\
+64 & $2^{-64}$ & 12 & 315 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Energy is a first-order constraint on a solar/battery-limited satellite. Using a
+representative space-grade figure of $0.5$\,nJ per cycle, 6FLAS spends about
+$153$\,nJ to verify a packet, versus $7.3\,\mu$J for IPsec ESP and $896$\,nJ for
+the SRv6 HMAC baseline, an analytically projected $48\times$ energy saving over IPsec that compounds over
+every hop of every packet across the constellation's lifetime. The $20$-bit Flow
+Label gives $2^{20}\approx1.05$M values per security domain; with $256$ domains
+the effective identifier space is $\approx2.7\times10^8$, comfortably above the
+$10^6$ concurrent-flow target. Within one domain, deriving $\fl$ via a keyed PRF
+(\cref{eq:fl}) spreads flows uniformly, so collisions begin to appear as the
+active-flow count approaches $\sqrt{2^{20}}\approx1024$ per domain — a collision
+is not a security failure because the per-packet MAC still binds the full
+five-tuple, and large deployments avoid it by partitioning across domains.
+
+\subsection{Deployment, Limitations, and Future Work}
+\label{sec:disc}
+
+\paragraph{Deployment fit and implementation.}
+6FLAS targets the regime that breaks conventional IP security: many concurrent
+flows, tiny per-router budgets, and frequent handovers. Its stateless design
+removes the dominant cost (per-flow associations) and is robust to the topology
+churn that forces SA renegotiation in stateful schemes. It is best suited to
+intra-constellation forwarding within an administrative domain that can
+provision domain keys. \cref{alg:verify} maps cleanly to hardware: a keyed-MAC
+core, a small replay-window SRAM, and a six-entry direction comparator suffice,
+so a 6FLAS data path can be realized in an FPGA/ASIC pipeline at line
+rate~\cite{li2022}. On the existing LEO IP/SRv6 data plane, 6FLAS
+adds the \texttt{End.SEC} function and reuses the standard SRH, so nodes that
+implement \texttt{End} but not \texttt{End.SEC} continue forwarding without per-hop verification.
+
+\paragraph{Limitations and future work.}
+6FLAS provides authentication, integrity, anti-replay, and path access control,
+but \emph{not} payload confidentiality; deployments needing secrecy compose
+6FLAS with an encryption layer, paying that cost only where required. The
+anti-replay window relies on loose time synchronization, which LEO constellations
+already provide but which adds a dependency. The $32$-bit tag bounds single-packet
+forgery at $2^{-32}$ (\cref{prop:forgery}); applications needing a stronger bound
+can widen the tag at a small header cost. Domain-key distribution and
+revocation operate at domain rather than per-flow granularity;
+a full key-management protocol with formal guarantees
+remains an important direction. Future work includes a confidentiality extension
+that selectively encrypts payloads while preserving stateless verification, a
+synchronization-free anti-replay variant based on monotonic per-source epochs,
+engagement with standards bodies on a Flow-Label security profile and the
+\texttt{End.SEC} SRv6 behavior, and prototype validation on flight-representative
+hardware to empirically confirm the analytical cost projections.

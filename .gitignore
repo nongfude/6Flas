@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Build artifacts
+proto/bench_flas
+proto/bench_flas.exe
+
+# LaTeX
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+paper/*.bbl
+paper/*.blg
+paper/main.pdf
+paper/main_out.log
+
+# Generated figures (reproducible from eval/flas_model.py)
+paper/figures/*.pdf
+paper/figures/data.json

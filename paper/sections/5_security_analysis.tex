@@ -1,0 +1,160 @@
+\section{Security Analysis}
+\label{sec:security}
+
+We analyze 6FLAS against the threat model of \cref{sec:threat}. Throughout, let
+$\skey_\domid$ be the secret domain key, assume the keyed PRF/MAC is a secure
+pseudorandom function, and recall that the Flow Label is immutable in transit.
+
+\subsection{Resilience to Known Attacks}
+\label{sec:attacks}
+
+We examine 6FLAS against the four attack classes that follow from the
+threat model: forgery and tampering, replay, man-in-the-middle
+manipulation, and stateless denial of service. 
+
+\paragraph{Forgery and tampering (R1, R2).}
+A packet is accepted only if the carried tag equals
+$\mtag=\mac_{\skey_\domid}(\fl\,\|\,\textsf{SID}\,\|\,\domid\,\|\,\seq)|_{32}$
+(\cref{eq:tag}, \cref{alg:verify}). An adversary without $\skey_\domid$ who
+modifies any covered field, the flow identity $\fl$, the path policy
+\textsf{SID}, the domain id, or the sequence number, must produce a matching
+tag.
+
+\begin{proposition}[Forgery bound]
+\label{prop:forgery}
+Against an adversary making $q$ verification queries and lacking $\skey_\domid$,
+the probability that any single forged or tampered packet is accepted is at most
+$2^{-32}+\epsilon_{\prf}$, where $\epsilon_{\prf}$ is the PRF-distinguishing
+advantage for the keyed MAC.
+\end{proposition}
+
+The $2^{-32}$ term is the chance of guessing the 32-bit truncated tag; a secure
+MAC contributes only $\epsilon_{\prf}$. We prove this in \cref{sec:formal}.
+Truncating to 32 bits trades tag length for header
+compactness; a wider tag can be used when a stronger bound is required. Because the tag covers \textsf{SID}, an adversary also cannot
+redirect a packet onto an unauthorized path without invalidating it (R4).
+
+\paragraph{Replay (R3) — probabilistic guarantee.}
+Each accepted packet advances the per-direction sliding window $W_v$
+(\cref{alg:verify}, lines 4--6, 12). Because the window is shared among
+\emph{all flows in a direction} rather than keyed per flow, R3 carries a
+probabilistic qualifier: replay of $(\fl_A, \seq_n)$ is detected while
+$\seq_n$ remains within the $w$-entry window, but escapes only if other flows
+in the same direction collectively advance the window base past $\seq_n$ within
+the timing tolerance $\Delta$.
+
+\begin{proposition}[Replay-window eviction bound]
+\label{prop:replay}
+Let $k = |F_{d,\domid}|$ be the number of flows sharing direction $d$ and
+domain $\domid$ in a single replay-window bucket, and let $R_{d,\domid}$ be
+their aggregate packet rate. A replayed $\seq_n$ is guaranteed rejected for
+at least $\lfloor w/R_{d,\domid} \rfloor$ seconds after first acceptance
+($w=256$); at $R_{d,\domid}=10^4$\,pkt/s this covers $25$\,ms. Beyond that
+interval, clock-based rejection (tolerance $\Delta$) applies. The probability
+of false-positive rejection from two distinct flows coinciding on the same
+current sequence number is $O(k^2/2^{24})$, valid when
+$k \ll \sqrt{2^{24}} \approx 4{,}096$. With $256$ domains and $6$ forwarding
+directions the worst-case bucket at $10^6$ total flows holds
+$\lfloor 10^6/(256{\times}6) \rfloor \approx 651$ flows, well within this bound.
+\end{proposition}
+
+At the operating rates of \cref{sec:results}, each per-direction window retains
+a sequence number for several milliseconds; with $\Delta$ set to cover
+propagation delay, the combined guarantee is sufficient for the LEO threat model.
+Clock-based rejection is the primary mechanism for long-lived flows whose
+sequence numbers have long since left the sliding window.
+
+\paragraph{Man-in-the-middle.}
+An on-path adversary can observe and relay packets but cannot alter the covered
+fields without breaking \cref{prop:forgery}, and cannot splice a valid tag from
+one flow onto another because the tag binds $\fl$ (the per-flow identity) to the
+SID and sequence number. Downgrade to plain SRv6 is detected because a 6FLAS
+domain expects the \texttt{End.SEC} function and a valid tag; a packet lacking
+them is dropped at the first 6FLAS hop.
+
+\paragraph{Denial of service.}
+Stateful protocols are vulnerable to state-exhaustion DoS: an attacker opens
+many bogus flows to fill the SA table. 6FLAS keeps no per-flow state, so this
+vector is closed by construction. The first action in \cref{alg:verify} is a
+domain-id check, and verification is a single MAC plus an $O(1)$ window probe,
+so the per-packet work an attacker can induce is bounded and small. A Flow-Label
+allow-list per domain further lets a node reject traffic outside its assigned
+label ranges before computing any MAC.
+
+Taken together, the four analyses confirm that 6FLAS satisfies R1--R4 under the
+threat model. Forgery and tampering are bounded by the MAC truncation
+(\cref{prop:forgery}); replay is probabilistically rejected by the sliding window (\cref{prop:replay}); man-in-the-middle
+manipulation is detected because the tag binds flow identity, path policy, and
+sequence number jointly; and denial-of-service via state exhaustion is
+structurally impossible because no per-flow state exists to exhaust. The cost of
+each check is $O(1)$ in the flow count, consistent with the feasibility
+condition of \cref{sec:formulation}.
+
+\subsection{Comparative Security Properties}
+\label{sec:sec-compare}
+
+\cref{tab:secprop} compares the security properties 6FLAS provides against the
+baselines. 6FLAS matches IPsec/DTLS on authentication, integrity, and anti-replay
+while uniquely offering stateless verification and topology-aware access
+control; it deliberately omits payload confidentiality, which it leaves to a
+composable encryption layer.
+
+\begin{table}[t]
+\centering
+\caption{Security properties provided ($\bullet$ = yes, $\circ$ = partial, --
+= no/not applicable).}
+\label{tab:secprop}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Property} & \textbf{IPsec} & \textbf{DTLS} & \textbf{SRv6-HMAC} & \textbf{6FLAS} \\
+\midrule
+Data-origin auth.\ (R1) & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ \\
+Integrity (R2)          & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ \\
+Anti-replay (R3)        & $\bullet$ & $\bullet$ & $\circ$   & $\circ$ \\
+Path access control (R4)& $\circ$   & --        & $\circ$   & $\bullet$ \\
+Stateless verification  & --        & --        & --        & $\bullet$ \\
+Handover w/o re-key      & --        & --        & $\circ$   & $\bullet$ \\
+Payload confidentiality & $\bullet$ & $\bullet$ & --        & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Formal Security Argument}
+\label{sec:formal}
+
+The authentication guarantee is made precise by reducing it to the
+unforgeability of the keyed MAC.
+
+\begin{proof}[Proof of \cref{prop:forgery}]
+Let $\textsf{MAC}_{\skey}$ be the keyed MAC of \cref{eq:tag} and let
+$\textsf{MAC}_{\skey}|_{32}$ be its $32$-bit truncation. Consider an adversary
+$\mathcal{A}$ that, after observing honestly generated packets, submits a packet
+whose covered message $M=(\fl\,\|\,\textsf{SID}\,\|\,\domid\,\|\,\seq)$ was never
+produced by an honest source. (If $M$ equals an honest message, the packet is a
+replay and is rejected by the sliding window of \cref{alg:verify}, so we may
+assume $M$ is fresh.) Acceptance requires the carried tag to equal
+$\textsf{MAC}_{\skey}(M)|_{32}$.
+
+Build a forger $\mathcal{B}$ against $\textsf{MAC}_{\skey}$: $\mathcal{B}$
+forwards $\mathcal{A}$'s observation requests to its own tagging oracle to
+generate honest packets, and outputs $\mathcal{A}$'s fresh pair
+$(M,\mtag)$ as a forgery. Because $M$ was never queried, this is a valid forgery
+attempt. If $\textsf{MAC}_{\skey}$ is a secure PRF with distinguishing advantage
+$\epsilon_{\prf}$, the probability that $\mtag$ matches the true full tag is at
+most $\epsilon_{\prf}$ beyond random guessing. With $32$-bit truncation, an
+adversary that simply guesses succeeds with probability $2^{-32}$. Combining,
+the per-packet acceptance probability of a fresh forgery is at most
+$2^{-32}+\epsilon_{\prf}$. Summing over $q$ verification attempts gives an
+overall bound of $q\,(2^{-32}+\epsilon_{\prf})$, the standard multi-query
+restatement of the single-packet bound.
+\end{proof}
+
+The reduction shows the structure of the guarantee: a successful network
+adversary $\mathcal{A}$ that produces an accepted packet it never observed from
+an honest source is exactly a MAC forger, because the covered fields it submits
+differ from any honestly produced message (otherwise the packet is a replay,
+caught by the window). Hence 6FLAS's authentication security reduces to the
+unforgeability of its keyed MAC, with the $32$-bit truncation contributing the
+$2^{-32}$ term of \cref{prop:forgery}.

@@ -1,0 +1,22 @@
+Low Earth orbit (LEO) satellite constellations are becoming a backbone of 6G
+non-terrestrial networks, yet their open inter-satellite links (ISLs) are
+exposed to eavesdropping, injection, and replay, while on-board routers offer
+too little compute and memory to run conventional per-flow security such as
+IPsec or DTLS. This paper presents 6FLAS, a lightweight, stateless security protection
+mechanism that moves security state off the satellite and into the packet
+itself. 6FLAS repurposes the 20-bit IPv6 Flow Label as a connectionless flow
+authenticator and binds it to an SRv6 security segment, so each on-board router
+verifies a single keyed message authentication code (MAC) over the routing
+header using only a small per-direction replay window rather than a per-flow
+security association table. The LEO security problem is formalized on a
+resource-constrained directed graph; the 6FLAS packet format, per-hop
+verification algorithm, and a security argument against eavesdropping,
+forgery, man-in-the-middle, replay, and stateless-denial-of-service attacks are
+provided. 6FLAS is evaluated with a reproducible analytical processing model and an
+event-driven latency model of a 1584-satellite Walker-delta constellation.
+6FLAS reduces per-hop security processing time by about $48\times$ versus IPsec
+ESP and $5.9\times$ versus an SRv6 HMAC baseline, cuts per-packet byte overhead
+by $79\%$, and eliminates per-flow on-board state entirely (zero bytes per flow versus $256$\,B for IPsec~ESP), while keeping the
+end-to-end latency within propagation-dominated bounds. These results indicate
+that packet-carried, topology-aware security is a practical fit for the
+resource envelope of LEO on-board routers.
