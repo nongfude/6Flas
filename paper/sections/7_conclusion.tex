@@ -14,11 +14,14 @@ denial of service by construction.
 
 Analysis demonstrates that 6FLAS meets data-origin authentication, integrity,
 anti-replay, and path access-control requirements, with single-packet forgery
-bounded by the MAC and the $32$-bit tag. A reproducible processing model, an event-driven model of a 1584-satellite
-constellation, and a Python software prototype show 6FLAS cuts per-hop
-processing about $48\times$ versus IPsec ESP and $5.9\times$ versus an SRv6 HMAC
-baseline, reduces per-packet overhead by $79\%$ and eliminates per-flow on-board state (zero bytes per flow),
-and keeps end-to-end latency within the propagation-dominated regime. These
+bounded by the MAC and the $32$-bit tag. A reproducible processing model, an
+event-driven model of a 1584-satellite constellation, and a Python software
+prototype analytically project that 6FLAS cuts per-hop processing about
+$48\times$ versus IPsec ESP and $5.9\times$ versus an SRv6 HMAC baseline; the
+prototype confirms the structural ordering on commodity hardware. Together these
+results indicate 6FLAS reduces per-packet overhead by $79\%$, eliminates
+per-flow on-board state (zero bytes per flow), and keeps end-to-end latency
+within the propagation-dominated regime. These
 results indicate that lightweight, stateless, packet-carried security is a
 practical fit for resource-constrained LEO on-board routers. Future work will
 add a composable confidentiality layer, a synchronization-free anti-replay

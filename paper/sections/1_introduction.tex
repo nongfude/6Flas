@@ -17,7 +17,7 @@ traffic~\cite{yue,wu2024leosec,du2025leosec,tang2026satdef,giuliari}. At the sam
 router runs on a radiation-hardened processor with a fraction of the compute
 and memory of a terrestrial core router, and it cannot be patched or rebooted
 on demand~\cite{denby}. The result is a sharp mismatch: the threat
-surface grows with every added hop, while the per-hop security budget is tiny.
+surface grows with every added hop, while the per-hop security budget is severely constrained.
 
 
 Conventional IP security was designed for endpoints with ample resources and
@@ -106,12 +106,14 @@ software prototype
 \end{itemize}
 
 
-On a 1\,GHz space-grade core, 6FLAS verifies a packet in about $306$\,ns per hop,
-roughly $48\times$ faster than IPsec ESP and $5.9\times$ faster than an SRv6
-HMAC baseline (analytically projected on a 1\,GHz space-grade core); it adds only $8$ bytes per packet ($79\%$ less than IPsec ESP)
-and carries zero per-flow on-board state ($100\%$ reduction versus IPsec~ESP; total fixed state is $192$\,B, direction-scoped). Under a $10^6$-flow load its single-core forwarding throughput is about
-$48\times$ that of IPsec ESP, and its end-to-end latency stays within the
-propagation-dominated regime of the constellation.
+Analytically projected on a 1\,GHz space-grade core, 6FLAS verifies a packet in
+about $306$\,ns per hop, roughly $48\times$ faster than IPsec ESP and $5.9\times$
+faster than an SRv6 HMAC baseline; it adds only $8$ bytes per packet ($79\%$
+less than IPsec ESP) and carries zero per-flow on-board state ($100\%$ reduction
+versus IPsec~ESP; total fixed state is $192$\,B, direction-scoped). Under a
+$10^6$-flow load its single-core forwarding throughput is analytically projected
+at about $48\times$ that of IPsec ESP, and its end-to-end latency stays within
+the propagation-dominated regime of the constellation.
 
 The remainder of this paper is organized as follows.
 \cref{sec:prelim} gives the LEO,
