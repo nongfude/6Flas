@@ -1,15 +1,11 @@
 \section{IPv6-Enabled LEO Network Model and Problem Formulation}
 \label{sec:prelim}
 
-This section establishes the network model and problem formulation. The LEO
-constellation is first described as a network of IPv6/SRv6 on-board routers and
-the topological regularities that constrain the design space; the
-two IPv6 features central to lightweight per-hop security — the Flow Label and
-SRv6 — are then reviewed. The adversary and the security and design requirements
-are subsequently stated, and the whole problem is finally cast as a feasibility
-condition on a resource-constrained graph. \cref{fig:model} previews the model: an IPv6/SRv6
-data plane carried in orbit, the open links an adversary can reach, and the
-packet fields available for protection.
+This section models the LEO constellation as a resource-constrained IPv6/SRv6
+routing graph, reviews the two packet fields that 6FLAS exploits, and formalizes
+the security requirements and feasibility condition the design must satisfy.
+The model covers the orbital data plane, the open inter-satellite links an
+adversary can exploit, and the packet fields available for protection.
 
 \begin{figure}[t]
 \centering
@@ -65,11 +61,7 @@ packet fields available for protection.
    \textcolor{red!70}{$\rightarrow$}\,adversary};
 \end{tikzpicture}%
 }
-\caption{IPv6-enabled LEO network model. Each satellite is an IPv6/SRv6 on-board
-router; intra- and inter-plane ISLs form a regular $+$Grid, and ground links
-attach sources and gateways. Because every link is an open free-space channel,
-an adversary (Eve) can eavesdrop, inject, or replay on any ISL or ground link
-(\cref{sec:threat}).}
+\caption{IPv6-enabled LEO network model.}
 \label{fig:model}
 \end{figure}
 
@@ -78,13 +70,12 @@ an adversary (Eve) can eavesdrop, inject, or replay on any ISL or ground link
 
 The constellation under consideration is a Walker-delta LEO configuration: $P$ orbital planes each carrying
 $S$ satellites at altitude $h$ of a few hundred kilometers (using the
-Starlink-like shell $h=550$\,km, $P=72$, $S=22$, $N=PS=1584$ in
-\cref{sec:exp}). Each satellite is an on-board IP router connected to its
+Starlink-like shell $h=550$\,km, $P=72$, $S=22$, $N=PS=1584$ in the evaluation). Each satellite is an on-board router connected to its
 neighbors by ISLs. In the common $+$Grid pattern, a satellite maintains four ISLs: two
 intra-plane links (forward/backward in the same orbital plane) and two
 inter-plane links (to satellites in adjacent planes); together with separate
 up and down ground links, this yields \emph{six} forwarding directions per
-node (north, south, east, west, up, down).
+satellite (north, south, east, west, up, down).
 
 Two properties shape the design space. First, the topology is
 \emph{dynamic but predictable}: satellites move continuously, ISLs are made and
@@ -92,8 +83,8 @@ broken on handover, yet positions and contact windows follow published
 ephemerides and can be computed in advance~\cite{handley,giuliari,kassing2023}. Second,
 on-board resources are \emph{severely constrained}: a radiation-hardened
 processor offers far less compute, memory, and energy than a terrestrial router,
-and software updates are slow and risky~\cite{denby,del2019}. A security
-mechanism for LEO must therefore have low per-packet processing cost, low
+and software updates are slow and risky~\cite{denby,del2019}. LEO security
+mechanisms must therefore have low per-packet processing cost, low
 per-flow memory, and must tolerate frequent topology changes without expensive
 re-keying.
 
@@ -112,9 +103,8 @@ the label is set by the source node, should be uniform across a flow's packets,
 and \emph{must not be modified by routers in transit}; routers use it as an
 opaque key for ECMP and QoS without interpreting its
 value~\cite{rfc6438}. The field thus provides up to $2^{20}=1{,}048{,}576$
-distinct values that travel unmodified end-to-end. These two properties,
-source-set and immutable, are precisely what a stateless flow authenticator
-needs.
+distinct values that travel unmodified end-to-end, with the source-set and immutable properties
+required by a stateless flow authenticator.
 
 \paragraph{SRv6.}
 Segment Routing over IPv6 expresses an explicit path as an ordered list of
@@ -124,34 +114,35 @@ the Function selects a behavior at that node (e.g., \texttt{End}, \texttt{End.X}
 forwarding to a specific link), and the Arguments parameterize it. A node
 processing the SRH advances the Segments Left pointer and applies the behavior
 of the current SID. SRv6 lets a source or controller program an end-to-end path
-through the constellation~\cite{michel2019,bhattacherjee2020}, and the SRH also defines an optional HMAC TLV to
-authenticate the segment list~\cite{rfc8754,abdelsalam2021}.
+through the constellation~\cite{li2022,kassing2023}, and the SRH also defines an optional HMAC TLV to
+authenticate the segment list~\cite{rfc8754}.
 
 \subsection{Threat Model and Security Requirements}
 \label{sec:threat}
 
-
-A Dolev--Yao--style network adversary adapted to LEO is assumed: the adversary
-can (i) \emph{eavesdrop} on any ISL or ground link, since the orbital channel
+We assume a Dolev--Yao--style adversary adapted to LEO: the adversary can (i) \emph{eavesdrop} on any ISL or ground link, since the orbital channel
 is open and the geometry is predictable; (ii) \emph{inject} arbitrary packets,
 including spoofed source addresses and forged headers; and (iii) \emph{replay}
 previously observed packets, possibly from a different vantage point. The
-adversary is assumed \emph{unable} to physically tamper with on-board hardware or extract
-keys from a satellite's secure element, and cannot break standard cryptographic
-primitives. Satellites within a security domain share keys provisioned
-out-of-band before launch or via a separate key-management channel; key
-management is orthogonal to this work and domain keys are treated as given.
+adversary is assumed \emph{unable} to physically tamper with on-board hardware
+or extract keys from a satellite's secure element, and cannot break standard
+cryptographic primitives. Satellites within a security domain share keys
+provisioned out-of-band before launch or via a separate key-management channel;
+key management is orthogonal to this work and domain keys are treated as given.
 
+\paragraph{Security requirements.}
+The mechanism must provide: \textbf{(R1) domain-origin authentication}, a
+router can confirm a packet was generated by an authorized member of the
+security domain --- i.e., a node holding $\skey_\domid$ --- but does not
+distinguish individual senders within the same domain;
+\textbf{(R2) routing-context integrity},
+tampering with the authenticated routing context (IPv6 addresses, Flow Label, active SRv6 segment, and domain metadata) is detected --- payload integrity and confidentiality are
+explicitly out of scope; \textbf{(R3) probabilistic anti-replay within window lifetime}, replayed
+packets are rejected with high probability while their sequence numbers remain within the per-$(\textsf{domain}, \textsf{direction})$ sliding window; beyond the window lifetime, long-term mitigation relies on periodic key rotation rather than per-packet detection
+(see \cref{prop:replay}); and \textbf{(R4) access control}, only packets bound
+to an authorized path/policy are forwarded.
 
-The mechanism must provide: \textbf{(R1) data-origin authentication}, a router
-can confirm a packet originates from an authorized source in its domain;
-\textbf{(R2) routing-header integrity}, tampering with the protected span
-(IPv6 base header $+$ SRH $+$ 8-byte metadata, $72$\,B) is detected —
-payload integrity and confidentiality are explicitly out of scope;
-\textbf{(R3) anti-replay}, replayed packets are rejected; and \textbf{(R4)
-access control}, only packets bound to an authorized path/policy are forwarded.
-
-
+\paragraph{Design constraints.}
 In addition, the mechanism must have \textbf{(D1)} low per-hop processing
 overhead, \textbf{(D2)} low per-flow on-board storage, and \textbf{(D3)}
 robustness to LEO topology dynamics (handovers without per-flow re-keying).
@@ -170,14 +161,14 @@ $10^6$.
 
 A per-hop security mechanism $\mathcal{M}$ is defined by a verification cost
 $c_{\mathcal{M}}$ (cycles per packet per hop) and a per-flow state cost
-$m_{\mathcal{M}}$ (bytes per flow per node). Feasibility under
-\cref{sec:leo-char} requires, for every node $v$ on the busiest path,
+$m_{\mathcal{M}}$ (bytes per flow per node). Feasibility under the constraints above requires, for every node $v$ on the busiest path,
 \begin{equation}
 \label{eq:feasibility}
 c_{\mathcal{M}} \le \Cv
 \quad\text{and}\quad
 \sum_{f:\,v\in\pi_f} m_{\mathcal{M}} \le \Mv .
 \end{equation}
+
 The goal is to design $\mathcal{M}$ that satisfies the security requirements
 R1--R4 while minimizing $c_{\mathcal{M}}$ and, crucially, the per-flow term
 $m_{\mathcal{M}}$, since the state cost in \cref{eq:feasibility} scales with the
@@ -185,4 +176,4 @@ number of flows crossing a node. Stateful mechanisms make
 $m_{\mathcal{M}}=\Theta(1)$ \emph{per flow} (a full SA), so the left-hand sum
 grows linearly in the flow count; the ideal mechanism targets $m_{\mathcal{M}}\to 0$
 per flow by carrying the security context in the packet, leaving only a bounded
-per-direction replay window at each node, independent of $|\setF|$.
+per-direction replay window at each node.

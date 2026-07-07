@@ -5,115 +5,107 @@
 proposal to deployment: mega-constellations now place thousands of satellites
 at altitudes of a few hundred kilometers, and standards bodies position them as
 a backbone of 6G non-terrestrial networks (NTN), delivering low-latency global
-connectivity where terrestrial infrastructure is absent~\cite{mahboob,kodheli2021,3gppntn}. Unlike bent-pipe relays, modern constellations forward
+connectivity where terrestrial infrastructure is absent~\cite{mahboob,kodheli2021,3gppntn}. IPv6 is already the de facto addressing layer for these
+networks, as Starlink assigns native IPv6 prefixes to subscribers and 3GPP NTN
+specifications mandate IPv6 for the NTN data plane, reflecting both IPv4 address
+exhaustion and the need for a 128-bit space adequate for millions of on-board
+nodes and ground terminals. Unlike bent-pipe relays, modern constellations forward
 traffic in space over inter-satellite links (ISLs), so a packet may traverse
-many on-board IP routers before reaching a ground gateway~\cite{handley,bhattacherjee2022}.
+many on-board IP routers before reaching a ground gateway~\cite{bhattacherjee2022}.
 
-This in-orbit forwarding is exactly what makes security hard. ISLs are
-broadcast over open free-space channels, and the published, near-deterministic
+This architectural shift introduces new security challenges. In-orbit forwarding exposes vulnerabilities that terrestrial IP security was not designed to address. ISLs traverse open free-space channels, and the published, near-deterministic
 orbital geometry lets an adversary with a suitable terminal predict when and
 where a link will exist, then eavesdrop, inject, or replay
-traffic~\cite{yue,wu2024leosec,du2025leosec,tang2026satdef,giuliari}. At the same time, an on-board
-router runs on a radiation-hardened processor with a fraction of the compute
-and memory of a terrestrial core router, and it cannot be patched or rebooted
-on demand~\cite{denby}. The result is a sharp mismatch: the threat
-surface grows with every added hop, while the per-hop security budget is severely constrained.
+traffic~\cite{yue,du2025leosec,tang2026satdef,salim2024satcybersec}.
+
+On-board routers run on radiation-hardened processors
+with a fraction of the compute and memory of terrestrial core routers, and
+cannot be patched or rebooted on demand~\cite{denby}. The threat surface grows with every added hop, while per-hop security budgets --- compute, memory, and SA capacity --- scale with the radiation-hardened hardware, not with the traffic.
 
 
 Conventional IP security was designed for endpoints with ample resources and
-stable associations. IPsec ESP and DTLS protect a flow by maintaining a
-per-flow security association (SA) holding keys, selectors, counters, and a
-replay window, and by encrypting and authenticating every packet with
-heavyweight primitives~\cite{rfc4301,rfc6347}. This model assumes endpoints
-with sufficient memory and relatively stable associations; on a constellation
-carrying $10^5$--$10^6$ concurrent flows, the aggregate SA state and per-packet
-crypto exceed the on-board budget, and the frequent ISL handovers caused by
-orbital motion force costly SA re-establishment, with measurement and modeling
-studies of satellite IPsec reporting significant handover and renegotiation
-costs~\cite{yue}.
+stable associations. IPsec ESP and DTLS protect flows by maintaining
+per-flow security associations (SAs) holding keys, selectors, counters, and
+replay windows, and by encrypting and authenticating every packet with
+heavyweight primitives~\cite{rfc4301,rfc6347}. On a constellation carrying $10^5$--$10^6$ concurrent flows, the
+aggregate SA state and per-packet crypto exceed the on-board budget. The
+frequent ISL handovers caused by orbital motion force costly SA
+re-establishment, with measurement and modeling studies of satellite IPsec
+reporting significant handover and renegotiation costs~\cite{yue}.
 
-Protocols closer to the space and routing layers help but do not close the gap.
-At the link layer, the CCSDS Space Data Link Security protocol authenticates and
-encrypts a single space link~\cite{ccsds}; it is effective hop-by-hop but
-provides neither end-to-end protection across an in-orbit IP path nor any use of
-the network-layer routing information that LEO IP forwarding already carries.
-Segment Routing over IPv6 (SRv6) brings programmable source routing to the
-satellite data plane and is attractive for LEO because a ground controller can
-pin a path through a predictable
-constellation~\cite{rfc8402,rfc8754,rfc8986,rfc9252}; the SRH defines an HMAC TLV to
-authenticate the segment list and recent work proposes richer security
-SIDs~\cite{rfc8754,srsurvey,abdelsalam2021}, but the HMAC TLV authenticates the whole segment
-list with a full SHA-256 digest that is expensive to verify on every hop, and
-existing SRv6 security designs still assume per-flow or per-policy state at
-verifying nodes~\cite{abdelsalam2021,tanveer2024srv6sec}.
+Existing protocols for space and routing layers provide partial solutions.
+The CCSDS Space Data Link Security protocol authenticates and
+encrypts individual space links~\cite{ccsds}, effective hop-by-hop but
+offering neither end-to-end protection across an in-orbit IP path nor leverage over
+network-layer routing information that LEO IP forwarding already carries.
+Segment Routing over IPv6 (SRv6) brings programmable source routing to
+satellite data planes~\cite{rfc8402,rfc8754,rfc8986,rfc9252}; ground controllers can
+pin paths through predictable constellations. The SRH defines an HMAC TLV to
+authenticate segment lists~\cite{rfc8754,srsurvey}, but full SHA-256 digests are expensive to verify on every hop, and
+existing SRv6 security designs assume per-flow or per-policy state at
+verifying nodes~\cite{wang2024byzantine}.
 
-Lightweight cryptography supplies fast building blocks but not the missing
-systems design. A large body of work, including the NIST
-lightweight-cryptography standardization and software-friendly keyed PRFs such
-as SipHash, offers primitives suited to constrained
-hardware~\cite{nistlwc,simon,siphash,lv2025leolwc}, yet these do not by themselves answer
-where to keep security state or how to verify packets at line rate on an
-on-board router. Finally, the 20-bit IPv6 Flow Label is set by the source,
-immutable in transit, and today used only for ECMP load balancing and QoS
-classification~\cite{rfc6437,rfc6438}; to our knowledge it has not been
-developed as a network-layer security authenticator with a defined derivation
-and verification rule, leaving its potential as a security primitive
-unexploited.
+Lightweight cryptography supplies fast primitives --- NIST
+standardization efforts and software-friendly keyed PRFs such
+as SipHash offer building blocks suited to constrained
+hardware~\cite{nistlwc,simon,siphash} --- but these do not address
+where to keep security state or how to verify packets at line rate on
+on-board routers. The 20-bit IPv6 Flow Label, set by the source and immutable in transit,
+is today used only for ECMP load balancing and QoS
+classification~\cite{rfc6437,rfc6438}. To our knowledge it has not been
+developed as a network-layer security authenticator with defined derivation
+and verification rules.
 
 
-The key insight is that security state should reside in the packet rather than
-on the satellite, while the structured, predictable LEO topology makes per-hop
-checks trivial. This insight is realized in \textbf{6FLAS} (IPv6 \textbf{F}low \textbf{L}abel
+These constraints motivate \textbf{6FLAS} (IPv6 \textbf{F}low \textbf{L}abel
 \textbf{A}uthenticated \textbf{S}egments), a lightweight security mechanism
 that (i) repurposes the IPv6 Flow Label as a connectionless flow authenticator
 derived from a pre-shared domain key, and (ii) binds it to an SRv6 security
 segment so that every on-board router verifies a single short keyed MAC over
-the routing header, using only a small per-direction replay window instead of a
-per-flow SA table. Because the Flow Label is set by the source and is immutable
-in transit by design~\cite{rfc6437}, it is a natural carrier for a stable, source-bound flow-identity token. Because LEO routers forward over a small
+the authenticated routing context, using only a small per-$(\textsf{domain}, \textsf{direction})$ replay window instead of a
+per-flow SA table.
+
+Because the Flow Label is set by the source and is immutable
+in transit by design~\cite{rfc6437}, it provides a stable flow identifier across all hops. When derived under a domain-controlled key, it becomes a domain-authenticated flow identity that binds the flow to its originating administrative domain. Because LEO routers forward over a small
 number of fixed grid directions, the egress check that normally requires a
-routing lookup collapses to a constant-time comparison.
-
-
-This paper makes four contributions, each addressing a gap above.
+routing lookup collapses to a constant-time comparison. Building on these properties,
+this paper makes four contributions:
 
 \begin{itemize}
 
 \item \textbf{Packet-carried stateless security model for LEO.}
 We formalize LEO security on a resource-constrained directed graph and show how
 moving security state from on-board storage into the packet meets the
-data-origin authentication, integrity, anti-replay, and access-control
-requirements without per-flow SAs (\cref{sec:method}).
+domain-origin authentication, integrity, anti-replay, and access-control
+requirements without per-flow SAs.
 
-\item \textbf{Flow-Label-based stateless flow authenticator.}
-We define a flow as a five-tuple plus a security-domain identifier, derive the
+\item \textbf{Flow-Label-based domain-authenticated flow identifier.}
+We define a flow within a security domain, derive the
 20-bit Flow Label from a domain key, and give a stateless verification rule that
-needs no per-flow table walk (\cref{sec:fl-auth}).
+needs no per-flow table walk. This provides domain-origin authentication, not per-sender accountability within a domain. The baseline design assumes each domain has a single authoritative source or coordinated source set, consistent with managed ground gateways; fully decentralized multi-sender domains require additional coordination or per-flow state fallback.
 
 \item \textbf{SRv6 Security SID integration.}
 We integrate the authenticator with SRv6 through a Security SID
 (Locator$\,|\,$Function$\,|\,$Arguments) that encodes a path security policy and
 specializes per-hop checking to the six fixed LEO forwarding directions, while
-interoperating with nodes that implement the base \texttt{End} behavior (\cref{sec:srv6-bind}).
+interoperating with nodes that implement the base \texttt{End} behavior.
 
-\item \textbf{Security argument and reproducible evaluation.}
-We analyze resilience to eavesdropping, forgery, man-in-the-middle, replay, and
+\item \textbf{Security analysis and evaluation.}
+We prove resilience to forgery, man-in-the-middle manipulation, replay, and
 stateless DoS, and quantify cost with an analytical processing model, an
-event-driven latency model of a 1584-satellite constellation, and a Python
-software prototype
-(\cref{sec:security,sec:exp}).
+event-driven latency model of a 1584-satellite constellation, and a C microbenchmark
+(RDTSC cycle counts, $10^6$ iterations).
 
 \end{itemize}
 
 
-Analytically projected on a 1\,GHz space-grade core, 6FLAS verifies a packet in
-about $306$\,ns per hop, roughly $48\times$ faster than IPsec ESP and $5.9\times$
-faster than an SRv6 HMAC baseline; it adds only $8$ bytes per packet ($79\%$
-less than IPsec ESP) and carries zero per-flow on-board state ($100\%$ reduction
-versus IPsec~ESP; total fixed state is $192$\,B, direction-scoped). Under a
-$10^6$-flow load its single-core forwarding throughput is analytically projected
-at about $48\times$ that of IPsec ESP, and its end-to-end latency stays within
-the propagation-dominated regime of the constellation.
+Our evaluation shows that these design choices translate into concrete
+on-board savings. On a 1\,GHz space-grade core, 6FLAS analytically
+verifies a packet in about $264$\,ns per hop, roughly $6\times$ faster than
+an SRv6 HMAC baseline (which authenticates a similar routing span) and $55\times$ faster than IPsec ESP (which additionally encrypts payload), while adding only
+$9$ bytes per packet. Forwarding throughput under a $10^6$-flow load remains
+close to routing-only SRv6, and end-to-end latency is dominated by
+propagation rather than security processing.
 
 The remainder of this paper is organized as follows.
 \cref{sec:prelim} gives the LEO,

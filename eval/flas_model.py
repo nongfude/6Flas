@@ -62,9 +62,16 @@ CYC = {
     "dtls_record": 1500,     # DTLS record-layer bookkeeping per record
 }
 
-# Bytes covered by the integrity primitive (the security-relevant header span
-# that FLAS authenticates: IPv6 base header + SRH + 8-byte FLAS metadata).
-COVERED_BYTES = 40 + 24 + 8
+# Bytes covered by the MAC (authenticated routing context):
+#   - IPv6 src/dst addresses: 32B (16B each, immutable in transit)
+#   - Flow Label: included in IPv6 header parsing (20 bits, effectively part of header)
+#   - Active SRv6 SID: 16B (128 bits)
+#   - Domain ID: 1B
+#   - Sequence number: 3B
+# Hop-variable fields (Hop Limit, Segments Left) are excluded.
+# Total approximate MAC input span for cost model: 32 + 16 + 1 + 3 = 52B
+# (Flow Label is in the already-parsed header, so main variable input is 52B)
+COVERED_BYTES = 52
 
 # Mechanism definitions: list of (primitive, count) charged per hop.
 def flas_cycles():
@@ -129,18 +136,21 @@ header_overhead = {
     "IPsec ESP": 8 + 16 + 12 + 2,   # ESP hdr(8)+IV(16)+ICV(12)+pad/trailer(2)
     "DTLS 1.2": 13 + 8 + 16,         # record hdr(13)+explicit nonce(8)+tag(16)
     "SRv6-Sec (HMAC)": 4 + 32,       # HMAC TLV header(4)+SHA256 digest(32)
-    "FLAS": 0 + 8,                   # Flow Label reuses existing field; 8B FLAS metadata TLV
+    "FLAS": 0 + 9,                   # Flow Label reuses existing field; 9B FLAS metadata (1B domid + 4B seq + 4B MAC)
 }
 
 # ---------------------------------------------------------------------------
 # 3. Per-flow on-board state model
 # ---------------------------------------------------------------------------
 # Bytes of mutable on-board state required per active flow.
+# FLAS uses per-(domain, direction) replay windows: for D domains and 6 directions,
+# total state is D × 6 × 32B. For D=256 domains, this is 48KB, but it is
+# independent of the flow count (zero per-flow state).
 state_per_flow = {
     "IPsec ESP": 256,        # SA: keys, selectors, replay window, counters
     "DTLS 1.2": 320,         # session: keys, epoch, replay window, cookie
     "SRv6-Sec (HMAC)": 96,   # per-flow key + counter
-    "FLAS": 0,              # zero per-flow state; total on-board state is fixed 192B (6 dirs × 32B), direction-scoped
+    "FLAS": 0,              # zero per-flow state; total on-board state is 48KB for 256 domains (domain-scoped), flow-count-independent
 }
 
 # ---------------------------------------------------------------------------
