@@ -8,19 +8,21 @@ venv/
 # Build artifacts
 proto/bench_flas
 proto/bench_flas.exe
+proto/*.obj
+proto/*.exe
+proto/compile_run.bat
 
-# LaTeX
-paper/*.aux
-paper/*.log
-paper/*.out
-paper/*.fls
-paper/*.fdb_latexmk
-paper/*.synctex.gz
-paper/*.bbl
-paper/*.blg
-paper/main.pdf
-paper/main_out.log
+# Manuscript source and compiled PDFs are kept local before publication
+paper/
+paper_cn/
 
-# Generated figures (reproducible from eval/flas_model.py)
-paper/figures/*.pdf
-paper/figures/data.json
+# Local generated outputs and revision notes
+eval/output*.txt
+*_REVISION_*.md
+FINAL_*.md
+TECHNICAL_REVISION_SUMMARY.md
+COMPLETE_REVISION_OPTION_A.md
+
+# Non-submission local copies
+paper/6FLAS_中文版.pdf
+paper/figures/图片1.jpg

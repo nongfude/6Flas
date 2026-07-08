@@ -163,7 +163,11 @@ static uint8_t  aes_key[16]    = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,0xa6,
 /* packet buffer: covered span + payload */
 static uint8_t PKT[COVERED+PAYLOAD];
 
-#define NOINLINE __attribute__((noinline))
+#if defined(_MSC_VER)
+#  define NOINLINE __declspec(noinline)
+#else
+#  define NOINLINE __attribute__((noinline))
+#endif
 
 /* ── FLAS pipeline ───────────────────────────────────────────────────────── */
 static rwin_t flas_windows[6]; /* one per +Grid direction */
