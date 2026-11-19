@@ -1,0 +1,7 @@
+CPU: Intel(R) Core(TM) i7-6500U CPU @ 2.50GHz
+Compiler: 13.2.0
+11 reps x 100000 iterations (warmup 10000)
+  FLAS         : median    699  min    649  max    875 cyc (1.00x vs FLAS)
+  SRv6-HMAC-64 : median   8371  min   8132  max   8565 cyc (11.98x vs FLAS)
+  SRv6-Sec     : median  10410  min  10052  max  12955 cyc (14.89x vs FLAS)
+  IPsec-like   : median  51480  min  50554  max  53903 cyc (73.65x vs FLAS)

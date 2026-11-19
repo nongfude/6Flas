@@ -1,0 +1,22 @@
+Single-case tests (node at SL=12, arrival dir 0):
+  valid packet                                 got accept    want accept    ok
+  duplicate sequence                           got replay    want replay    ok
+  stale sequence (below window base)           got replay    want replay    ok
+  DA differs from SID at SL                    got position  want position  ok
+  changed source                               got mac       want mac       ok
+  changed final destination SID[0]             got mac       want mac       ok
+  changed Flow Label                           got mac       want mac       ok
+  changed sequence, old tag                    got mac       want mac       ok
+  changed tag                                  got mac       want mac       ok
+  changed domain id                            got domain    want domain    ok
+  changed any one of 24 SIDs (all 24 tried)    got mac       want mac       ok
+  tag under unknown key                        got mac       want mac       ok
+  tag under overlap (previous) epoch key       got accept    want accept    ok
+  valid MAC, egress direction unauthorized     got direction want direction ok
+  arrival direction differs from SID ingress   got direction want direction ok
+  valid MAC, SID domain differs from packet    got domain    want domain    ok
+Documented limit (SL not covered by the tag):
+  SL/DA moved to later SID, matching arrival dir got accept    want accept    ok
+  same, but arrival dir does not match SID     got direction want direction ok
+Fuzz: 1000000 single-bit flips of covered fields/tag: accepted=0 position=0 domain=4761 direction=1836 mac=993403 replay=0
+ALL EXPECTATIONS HOLD (0 failures)

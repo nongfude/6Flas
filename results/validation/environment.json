@@ -1,0 +1,14 @@
+{
+  "platform": "Windows-10-10.0.19045-SP0",
+  "machine": "AMD64",
+  "python": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "compiler": "gcc (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r8) 13.2.0",
+  "flags": [
+    "-O3",
+    "-Wall",
+    "-Wextra",
+    "-std=c11",
+    "-Wno-unused-function"
+  ],
+  "matplotlib": "3.10.8"
+}

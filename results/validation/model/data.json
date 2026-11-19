@@ -1,0 +1,327 @@
+{
+  "proc_ns": {
+    "Plain SRv6": 100.0,
+    "FLAS": 1337.4,
+    "SRv6-HMAC-64 (domain key)": 5561.0,
+    "SRv6-Sec (HMAC)": 5940.0,
+    "IPsec ESP (shared SA, GCM)": 11850.0,
+    "IPsec ESP": 14612.0,
+    "DTLS 1.3 (GCM)": 13170.0,
+    "DTLS 1.2": 15635.0
+  },
+  "proc_ns_hw_profile": {
+    "Plain SRv6": 100.0,
+    "FLAS": 1337.4,
+    "SRv6-HMAC-64 (domain key)": 1445.0,
+    "SRv6-Sec (HMAC)": 1524.0,
+    "IPsec ESP (shared SA, GCM)": 1138.0,
+    "IPsec ESP": 2554.0,
+    "DTLS 1.3 (GCM)": 2458.0,
+    "DTLS 1.2": 3820.0
+  },
+  "ratio_sw_vs_flas": {
+    "Plain SRv6": 0.07,
+    "FLAS": 1.0,
+    "SRv6-HMAC-64 (domain key)": 4.16,
+    "SRv6-Sec (HMAC)": 4.44,
+    "IPsec ESP (shared SA, GCM)": 8.86,
+    "IPsec ESP": 10.93,
+    "DTLS 1.3 (GCM)": 9.85,
+    "DTLS 1.2": 11.69
+  },
+  "ratio_hw_vs_flas": {
+    "Plain SRv6": 0.07,
+    "FLAS": 1.0,
+    "SRv6-HMAC-64 (domain key)": 1.08,
+    "SRv6-Sec (HMAC)": 1.14,
+    "IPsec ESP (shared SA, GCM)": 0.85,
+    "IPsec ESP": 1.91,
+    "DTLS 1.3 (GCM)": 1.84,
+    "DTLS 1.2": 2.86
+  },
+  "proc_ns_cal_profile": {
+    "Plain SRv6": 100.0,
+    "FLAS": 1125.4,
+    "SRv6-HMAC-64 (domain key)": 4169.0,
+    "SRv6-Sec (HMAC)": 4418.0,
+    "IPsec ESP (shared SA, GCM)": 11850.0,
+    "IPsec ESP": 12706.0,
+    "DTLS 1.3 (GCM)": 13170.0,
+    "DTLS 1.2": 13810.0
+  },
+  "ratio_cal_vs_flas": {
+    "Plain SRv6": 0.09,
+    "FLAS": 1.0,
+    "SRv6-HMAC-64 (domain key)": 3.7,
+    "SRv6-Sec (HMAC)": 3.93,
+    "IPsec ESP (shared SA, GCM)": 10.53,
+    "IPsec ESP": 11.29,
+    "DTLS 1.3 (GCM)": 11.7,
+    "DTLS 1.2": 12.27
+  },
+  "flas_without_window_ns": 1282.4,
+  "header_overhead_B": {
+    "Plain SRv6": 0,
+    "FLAS": 16,
+    "SRv6-HMAC-64 (domain key)": 16,
+    "SRv6-Sec (HMAC)": 40,
+    "IPsec ESP (shared SA, GCM)": 34,
+    "IPsec ESP": 42,
+    "DTLS 1.3 (GCM)": 22,
+    "DTLS 1.2": 62
+  },
+  "srh_bytes_24_sids": 392,
+  "state_per_flow_B": {
+    "FLAS": 0,
+    "SRv6-HMAC-64 (domain key)": 0,
+    "SRv6-Sec (HMAC)": 96,
+    "IPsec ESP (shared SA, GCM)": 0,
+    "IPsec ESP": 256,
+    "DTLS 1.3 (GCM)": 256,
+    "DTLS 1.2": 320
+  },
+  "replay_state_kib_256_domains": {
+    "1_epoch": 48.0,
+    "2_epochs": 96.0
+  },
+  "throughput_at_1e6_Mpps": {
+    "Plain SRv6": 10.0,
+    "FLAS": 0.75,
+    "SRv6-HMAC-64 (domain key)": 0.18,
+    "SRv6-Sec (HMAC)": 0.17,
+    "IPsec ESP (shared SA, GCM)": 0.08,
+    "IPsec ESP": 0.07,
+    "DTLS 1.3 (GCM)": 0.08,
+    "DTLS 1.2": 0.06
+  },
+  "constellation": {
+    "alt_km": 550.0,
+    "planes": 72,
+    "sats_per_plane": 22,
+    "n_sat": 1584,
+    "intra_link_km": 1969.9,
+    "inter_link_km": 603.8
+  },
+  "mean_hops_reference_shell": 24.5,
+  "latency_ms": {
+    "FLAS_median": 78.11,
+    "FLAS_p95": 127.31,
+    "HMAC64_median": 78.17,
+    "IPsec_median": 78.38,
+    "IPsec_p95": 127.82,
+    "Plain_median": 78.06
+  },
+  "covered_bytes": 424,
+  "rekey_cycles_per_flow": {
+    "IPsec ESP": 3500000,
+    "DTLS 1.2": 3800000,
+    "DTLS 1.3 (GCM)": 2500000,
+    "SRv6-Sec (HMAC)": 120000,
+    "FLAS": 0
+  },
+  "rekey_ms_at_1e4_flows": {
+    "IPsec ESP": 35000.0,
+    "DTLS 1.2": 38000.0,
+    "DTLS 1.3 (GCM)": 25000.0,
+    "SRv6-Sec (HMAC)": 1200.0,
+    "FLAS": 0.0
+  },
+  "keymgmt_MB_per_rotation_all_domains_all_sats": 22.7,
+  "keymgmt_Bps_for_24h_epoch": 262.8,
+  "payload_sizes": [
+    64,
+    128,
+    256,
+    512,
+    1024,
+    1500
+  ],
+  "proc_ns_at_1500B": {
+    "FLAS": 1337.4,
+    "SRv6-HMAC-64 (domain key)": 5561.0,
+    "SRv6-Sec (HMAC)": 5940.0,
+    "IPsec ESP (shared SA, GCM)": 33550.0,
+    "IPsec ESP": 39120.0,
+    "DTLS 1.2": 40143.0
+  },
+  "tag_tradeoff": [
+    {
+      "tag_bits": 16,
+      "forgery_bound_log2": -16,
+      "metadata_bytes": 7,
+      "proc_ns": 1325.4
+    },
+    {
+      "tag_bits": 24,
+      "forgery_bound_log2": -24,
+      "metadata_bytes": 8,
+      "proc_ns": 1327.4
+    },
+    {
+      "tag_bits": 32,
+      "forgery_bound_log2": -32,
+      "metadata_bytes": 9,
+      "proc_ns": 1329.4
+    },
+    {
+      "tag_bits": 48,
+      "forgery_bound_log2": -48,
+      "metadata_bytes": 11,
+      "proc_ns": 1333.4
+    },
+    {
+      "tag_bits": 64,
+      "forgery_bound_log2": -64,
+      "metadata_bytes": 13,
+      "proc_ns": 1337.4
+    }
+  ],
+  "forgery_expectation_3Mpps": {
+    "32": {
+      "per_day": 60.34970283508301,
+      "hours_per_success": 0.3976821570370371
+    },
+    "64": {
+      "per_day": 1.4051260155412137e-08,
+      "hours_per_success": 1708031858.6768105
+    }
+  },
+  "energy_nj_per_pkt": {
+    "Plain SRv6": 50.0,
+    "FLAS": 668.7,
+    "SRv6-HMAC-64 (domain key)": 2780.5,
+    "SRv6-Sec (HMAC)": 2970.0,
+    "IPsec ESP (shared SA, GCM)": 5925.0,
+    "IPsec ESP": 7306.0,
+    "DTLS 1.3 (GCM)": 6585.0,
+    "DTLS 1.2": 7817.5
+  },
+  "jitter_p999_ms": 2.14,
+  "detour_ms": {
+    "around inter-plane failure": 13.14,
+    "around intra-plane failure": 4.03
+  },
+  "delta_ms": 15.29,
+  "window_rule": [
+    {
+      "rate_pps": 1000.0,
+      "w_bits": 64,
+      "kib_256_domains_1_epoch": 12.0,
+      "wrap_minutes": 71582.8
+    },
+    {
+      "rate_pps": 10000.0,
+      "w_bits": 256,
+      "kib_256_domains_1_epoch": 48.0,
+      "wrap_minutes": 7158.3
+    },
+    {
+      "rate_pps": 100000.0,
+      "w_bits": 2048,
+      "kib_256_domains_1_epoch": 384.0,
+      "wrap_minutes": 715.8
+    },
+    {
+      "rate_pps": 1000000.0,
+      "w_bits": 16384,
+      "kib_256_domains_1_epoch": 3072.0,
+      "wrap_minutes": 71.6
+    }
+  ],
+  "shell_scaling": [
+    {
+      "n_sat": 264,
+      "mean_hops": 9.7,
+      "flas_path_us": 6.8,
+      "hmac64_path_us": 28.5,
+      "hmac_path_us": 32.2
+    },
+    {
+      "n_sat": 576,
+      "mean_hops": 14.0,
+      "flas_path_us": 12.3,
+      "hmac64_path_us": 51.5,
+      "hmac_path_us": 56.8
+    },
+    {
+      "n_sat": 1188,
+      "mean_hops": 20.0,
+      "flas_path_us": 23.1,
+      "hmac64_path_us": 96.2,
+      "hmac_path_us": 103.8
+    },
+    {
+      "n_sat": 1584,
+      "mean_hops": 24.5,
+      "flas_path_us": 32.8,
+      "hmac64_path_us": 136.2,
+      "hmac_path_us": 145.5
+    },
+    {
+      "n_sat": 3072,
+      "mean_hops": 33.0,
+      "flas_path_us": 57.7,
+      "hmac64_path_us": 239.3,
+      "hmac_path_us": 251.9
+    },
+    {
+      "n_sat": 4800,
+      "mean_hops": 41.0,
+      "flas_path_us": 86.6,
+      "hmac64_path_us": 359.0,
+      "hmac_path_us": 374.6
+    }
+  ],
+  "resecure_s_at_fail_fraction": {
+    "0.001": {
+      "IPsec ESP": 83.0,
+      "DTLS 1.2": 90.2,
+      "DTLS 1.3 (GCM)": 59.3,
+      "SRv6-Sec (HMAC)": 2.8
+    },
+    "0.003": {
+      "IPsec ESP": 243.5,
+      "DTLS 1.2": 264.4,
+      "DTLS 1.3 (GCM)": 173.9,
+      "SRv6-Sec (HMAC)": 8.3
+    },
+    "0.01": {
+      "IPsec ESP": 750.1,
+      "DTLS 1.2": 814.4,
+      "DTLS 1.3 (GCM)": 535.8,
+      "SRv6-Sec (HMAC)": 25.7
+    },
+    "0.03": {
+      "IPsec ESP": 1815.0,
+      "DTLS 1.2": 1970.6,
+      "DTLS 1.3 (GCM)": 1296.5,
+      "SRv6-Sec (HMAC)": 62.2
+    },
+    "0.1": {
+      "IPsec ESP": 3220.8,
+      "DTLS 1.2": 3496.9,
+      "DTLS 1.3 (GCM)": 2300.6,
+      "SRv6-Sec (HMAC)": 110.4
+    }
+  },
+  "resume_s_at_1e4_flows": {
+    "IPsec ESP": 35.0,
+    "DTLS 1.2": 38.0,
+    "DTLS 1.3 (GCM)": 25.0,
+    "SRv6-Sec (HMAC)": 1.2
+  },
+  "flas_resume_ms": 0.384,
+  "affected_flows_at_fail_fraction": {
+    "0.001": 23726,
+    "0.003": 69570,
+    "0.01": 214322,
+    "0.03": 518583,
+    "0.1": 920234
+  },
+  "detour_path_proc_us": {
+    "0": 32.1,
+    "2": 37.1,
+    "6": 48.3,
+    "10": 61.0
+  }
+}
